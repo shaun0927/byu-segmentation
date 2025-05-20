@@ -1,0 +1,10 @@
+# 텍스트 파일은 전부 LF로 보관
+* text=auto eol=lf
+
+# CSV 확장자 강제 LF
+*.csv text eol=lf
+
+# 바이너리·이미지·zarr 등은 변환 금지
+*.jpg  -text
+*.png  -text
+*.zarr -text
