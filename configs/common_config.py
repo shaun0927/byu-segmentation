@@ -40,6 +40,10 @@ _DEFAULTS = dict(
     beta           = 2,             # F-β, β=2
     classes        = ["motor"],     # single-class segmentation
     in_channels    = 1,
+
+    # logging
+    val_patch_bs = 2,
+    log_every    = 20, 
 )
 
 # ─── factory 메서드 ───────────────────────────────────
@@ -56,5 +60,3 @@ def get_cfg(**overrides):
     cfg.n_classes = len(cfg.classes)
 
     return cfg
-
-

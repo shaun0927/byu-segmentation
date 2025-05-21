@@ -1,20 +1,3 @@
-"""
-utils.py
-────────────────────────────────────────────────────────
-공통 유틸리티
-  • gaussian_kernel_3d : 3-D Gaussian heat-map 생성
-  • natural_key        : slice 파일의 human-friendly sort
-  • open_zarr_lazy     : ✨ zarr 배열을 lazy 로 열기 (RAM 점유 X)
-  • grid_split_3d      : 3-D 볼륨 → non-overlap 패치 + 위치
-  • grid_reconstruct_3d: 패치들을 원본 좌표계로 가중평균 복원
-────────────────────────────────────────────────────────
-"""
-
-from __future__ import annotations
-from typing import List, Any, Tuple
-
-import numpy as np
-import torch
 import re
 import zarr, os
 
@@ -27,7 +10,7 @@ def gaussian_kernel_3d(
     cutoff: float = 0.05,
 ) -> np.ndarray:
     """
-    spacing-aware 3-D Gaussian (float32). `cutoff` 미만 값은 0 으로 희소화.
+    spacing-aware 3-D Gaussian (float32). cutoff 미만 값은 0 으로 희소화.
     """
     zc, yc, xc = center
     D, H, W = shape
