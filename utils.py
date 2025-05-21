@@ -1,3 +1,20 @@
+"""
+utils.py
+────────────────────────────────────────────────────────
+공통 유틸리티
+  • gaussian_kernel_3d : 3-D Gaussian heat-map 생성
+  • natural_key        : slice 파일의 human-friendly sort
+  • open_zarr_lazy     : ✨ zarr 배열을 lazy 로 열기 (RAM 점유 X)
+  • grid_split_3d      : 3-D 볼륨 → non-overlap 패치 + 위치
+  • grid_reconstruct_3d: 패치들을 원본 좌표계로 가중평균 복원
+────────────────────────────────────────────────────────
+"""
+
+from __future__ import annotations
+from typing import List, Any, Tuple
+
+import numpy as np
+import torch
 import re
 import zarr, os
 
@@ -118,3 +135,17 @@ def grid_reconstruct_3d(
         count[:, z0:z0+dz, y0:y0+dy, x0:x0+dx] += 1
 
     return out / count.clamp_min(1)
+
+
+
+import time, contextlib, torch
+
+
+@contextlib.contextmanager
+def elapsed(msg: str):
+    torch.cuda.synchronize()          # GPU 작업 종료 대기
+    t0 = time.perf_counter()
+    yield
+    torch.cuda.synchronize()
+    dt = time.perf_counter() - t0
+    print(f"[DBG] {msg:<26} : {dt*1000:.1f} ms")

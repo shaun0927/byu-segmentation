@@ -38,3 +38,12 @@ boto3>=1.34,<1.39
 ##############################################################################
 # System / Misc
 rich>=13.7,<14.1
+click
+protobuf
+pydantic
+pydantic_core
+docker-pycreds
+sentry_sdk
+python_dotenv
+typing_inspection
+torchio

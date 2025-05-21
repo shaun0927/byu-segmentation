@@ -42,7 +42,7 @@ _DEFAULTS = dict(
     in_channels    = 1,
 
     # logging
-    val_patch_bs = 2,
+    val_patch_bs = 16,
     log_every    = 20, 
 )
 

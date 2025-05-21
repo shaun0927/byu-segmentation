@@ -1,76 +1,81 @@
-#!/usr/bin/env python
+# postprocess/pp_byu.py
+# ---------------------------------------------------------------
 """
-postprocess/pp_byu.py
-────────────────────────────────────────────────────────
-BYU-Motor – inference 후처리
-  • 한 볼륨에 모터가 0 or 1 개라는 가정
-  • softmax → simple 3-D NMS → 최고점 1 개만 채택
-  • 최고 확률 < THRESH ⇒ “모터 없음”  → (-1,-1,-1)
+BYU-Motor 후처리 (FP16 NMS 버전, down-sampling X)
 
-사용 예
--------
-logits = net(patch_batch)["logits"].softmax(1)[:,1]  # (D,H,W) prob
-full_prob = grid_reconstruct_3d(prob_batch, locs, vol_shape)
-pred_df   = post_process_volume(full_prob, spacing=10.0, tomo_id="t123")
+* 볼륨당 모터 개수 ≤ 1 가정
+* softmax-prob (D,H,W)  →  3-D max-pool NMS →  peak 1 개 채택
+* 최고 확률 < THRESH 이면 “모터 없음”으로 (-1,-1,-1) 반환
 """
 
 from __future__ import annotations
-from typing import Tuple
-import torch, pandas as pd
+from typing import Tuple, Union
+import torch, pandas as pd, numpy as np
 
-# ───── 하이퍼 파라미터 ────────────────────────────────
-VOX_SPACING_A = 10.0          # 기본 grid_reconstruct 에 맞춘 voxel spacing [Å]
-NMS_RADIUS_VX = 5             # ≈ 50 Å / 10 ≃ 5 voxel
-THRESH        = 0.30          # 최고 확률 < THRESH → 모터 없음
+# ───── 하이퍼 파라미터 ───────────────────────────────
+VOX_SPACING_A = 10.0          # voxel ↔ Å 변환 값
+NMS_RADIUS_VX = 15             # max-pool radius (voxel)
+THRESH        = 0.20          # 최고 확률 cutoff
+CUDA_OK       = torch.cuda.is_available()
 
-# ───── 빠른 3-D NMS ───────────────────────────────────
+# ───── 3-D NMS (FP16 지원) ───────────────────────────
 def simple_nms(prob: torch.Tensor, radius: int = NMS_RADIUS_VX) -> torch.Tensor:
     """
-    prob : (D,H,W)  – float 0-1
-    반환  : 동일 shape, NMS 로 남은 peak 위치만 유지
+    prob : (D,H,W) fp32 / fp16  –  device (CPU/GPU) 무관
+    반환 : 동일 shape, peak 위치만 유지
     """
+    k = radius * 2 + 1
     mp = torch.nn.functional.max_pool3d(
-        prob[None], kernel_size=radius * 2 + 1, stride=1,
-        padding=radius)[0]
-    keep = prob.eq(mp)
-    return torch.where(keep, prob, torch.zeros_like(prob))
+        prob[None, None],          # (B=1,C=1,D,H,W)
+        kernel_size=k, stride=1, padding=radius
+    )[0, 0]
+    return torch.where(prob == mp, prob, prob.new_zeros(()).expand_as(prob))
 
-# ───── 주 함수 ────────────────────────────────────────
+# ───── 메인 함수 ─────────────────────────────────────
 def post_process_volume(
-        prob_vol: torch.Tensor | torch.FloatTensor,   # (D,H,W) 확률
-        spacing: float = VOX_SPACING_A,
-        tomo_id: str = "unknown"
+    prob_vol: Union[torch.Tensor, np.ndarray],
+    *,
+    spacing: float = VOX_SPACING_A,
+    tomo_id: str   = "unknown"
 ) -> pd.DataFrame:
     """
-    확률 볼륨 → 좌표 0 또는 1 개 DataFrame 반환
+    확률 볼륨 → 1 row DataFrame (없으면 -1,-1,-1)
     """
-    if isinstance(prob_vol, torch.Tensor):
-        prob = prob_vol.float().detach()
-    else:  # numpy → torch
-        prob = torch.from_numpy(prob_vol).float()
+    # 0) tensor 로 변환 및 Device / dtype 설정 --------------------
+    if isinstance(prob_vol, np.ndarray):
+        prob = torch.from_numpy(prob_vol)          # CPU tensor
+    else:
+        prob = prob_vol.detach()
 
-    # 1) NMS & 최고점
-    peaks = simple_nms(prob)                       # (D,H,W)
-    conf, flat_idx = peaks.view(-1).max(0)
-    conf = conf.item()
+    # GPU 사용 가능하면 GPU, 그리고 FP16 로 변환
+    if CUDA_OK:
+        prob = prob.cuda(non_blocking=True).half()  # fp16
+    else:
+        prob = prob.float()                         # CPU fp32
 
-    # 2) 모터 없음
-    if conf < THRESH:
+    # 1) NMS & peak 찾기 -----------------------------------------
+    peaks      = simple_nms(prob)                   # 같은 device/dtype
+    conf, idx  = peaks.view(-1).max(0)              # GPU argmax 가능
+    conf_val   = conf.float().item()                # Python float
+
+    # 2) 모터 없음 -----------------------------------------------
+    if conf_val < THRESH:
         return pd.DataFrame(
-            [[tomo_id, -1, -1, -1, conf]],
+            [[tomo_id, -1, -1, -1, conf_val]],
             columns=["tomo_id",
                      "Motor axis 0", "Motor axis 1", "Motor axis 2", "conf"]
         )
 
-    # 3) 모터 있음 → voxel → Å 좌표 변환
+    # 3) voxel → Å 좌표 변환 -------------------------------------
     D, H, W = prob.shape
-    z = flat_idx // (H * W)
-    y = (flat_idx // W) % H
-    x = flat_idx % W
-    coord_Å = [int(z) * spacing, int(y) * spacing, int(x) * spacing]
+    idx     = idx.item()
+    z = idx // (H * W)
+    y = (idx // W) % H
+    x = idx % W
+    coord_Å = [z * spacing, y * spacing, x * spacing]
 
     return pd.DataFrame(
-        [[tomo_id, *coord_Å, conf]],
+        [[tomo_id, *coord_Å, conf_val]],
         columns=["tomo_id",
                  "Motor axis 0", "Motor axis 1", "Motor axis 2", "conf"]
     )
