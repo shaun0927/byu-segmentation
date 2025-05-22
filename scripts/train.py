@@ -214,7 +214,7 @@ def main():
             scaler.update()
             ep_loss += loss.item()
 
-            if step % getattr(cfg, "log_every", 20) == 0:
+            if step % getattr(cfg, "log_every", 42) == 0:
                 print(f"Epoch {ep+1} Step {step}/{len(tr_dl)}  loss {loss.item():.4f}")
                 if wb:
                     wb.log({"loss/step": loss.item()}, step=ep*len(tr_dl)+step)

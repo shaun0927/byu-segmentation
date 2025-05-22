@@ -43,7 +43,7 @@ _DEFAULTS = dict(
 
     # logging
     val_patch_bs = 16,
-    log_every    = 20, 
+    log_every    = 42, 
 )
 
 # ─── factory 메서드 ───────────────────────────────────
