@@ -19,7 +19,7 @@ import numpy as np, torch, zarr, pandas as pd
 from torch.utils.data import Dataset
 import monai.transforms as mt
 
-from utils import grid_split_3d
+from utils import grid_split_3d, gaussian_kernel_3d
 
 # ─── global hyper‑params ──────────────────────────────────────────
 ROI: Tuple[int, int, int] = (96, 96, 96)          # (d, h, w)
@@ -124,12 +124,11 @@ class BYUMotorDataset(Dataset):
         x0 = np.clip(xc + jitter[2] - w // 2, 0, W - w)
 
         img = norm_patch(vol[z0 : z0 + d, y0 : y0 + h, x0 : x0 + w][...])
-        # → center 로부터 R_vox 이내는 1, 그 외는 0인 binary mask 생성
-        zz, yy, xx = np.ogrid[:d, :h, :w]
+
         dz, dy, dx = (zc - z0, yc - y0, xc - x0)
-        R_vox = 4   # 예시: 반경 4 voxel 이내를 positive로 설정
-        dist2 = (zz - dz)**2 + (yy - dy)**2 + (xx - dx)**2
-        lbl = (dist2 <= R_vox**2).astype(np.float32)
+        lbl = gaussian_kernel_3d(
+            ROI, (dz, dy, dx), SIGMA_PX, cutoff=CUTOFF
+        ).astype(np.float32)
 
         return _to_tensor(img), _to_tensor(lbl)
 
