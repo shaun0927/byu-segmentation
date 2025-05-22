@@ -250,7 +250,8 @@ def main():
                 bp = (bp - bp.mean((1,2,3), keepdims=True)) / (bp.std((1,2,3), keepdims=True) + 1e-6)
                 bt = torch.from_numpy(bp[:, None]).to(dev, non_blocking=True)
                 with torch.no_grad(), autocast():
-                    prob = net({"image": bt})["logits"].softmax(1)[:, 1]
+                    logits = net({"image": bt})["logits"]        # shape (B,1,D,H,W)
+                    prob = torch.sigmoid(logits).squeeze(1)      # shape (B,D,H,W)
                 prob = prob.cpu().numpy()
                 for p, (z0, y0, x0) in zip(prob, coords[sl]):
                     acc[z0:z0+ROI[0], y0:y0+ROI[1], x0:x0+ROI[2]] += p

@@ -19,13 +19,13 @@ import numpy as np, torch, zarr, pandas as pd
 from torch.utils.data import Dataset
 import monai.transforms as mt
 
-from utils import gaussian_kernel_3d, grid_split_3d
+from utils import grid_split_3d
 
 # ─── global hyper‑params ──────────────────────────────────────────
 ROI: Tuple[int, int, int] = (96, 96, 96)          # (d, h, w)
 POS_PER_TOMO, NEG_PER_TOMO = 3, 1                 # batch 내부 3:1 → DataLoader 측 6:2 보장
-SIGMA_PX   = 4.5                                  # spacing‑aware σ 는 ROI 프로토타입 확인 후 조정
-CUTOFF     = 0.05
+#SIGMA_PX   = 8                                  # spacing‑aware σ 는 ROI 프로토타입 확인 후 조정
+#CUTOFF     = 0.01
 MAX_TRY_NEG = 50
 LABEL_CSV   = Path("data/raw/train_labels.csv")  # ← 경로 한 곳만!
 
@@ -124,9 +124,12 @@ class BYUMotorDataset(Dataset):
         x0 = np.clip(xc + jitter[2] - w // 2, 0, W - w)
 
         img = norm_patch(vol[z0 : z0 + d, y0 : y0 + h, x0 : x0 + w][...])
-        lbl = gaussian_kernel_3d(
-            ROI, (zc - z0, yc - y0, xc - x0), SIGMA_PX, cutoff=CUTOFF
-        )
+        # → center 로부터 R_vox 이내는 1, 그 외는 0인 binary mask 생성
+        zz, yy, xx = np.ogrid[:d, :h, :w]
+        dz, dy, dx = (zc - z0, yc - y0, xc - x0)
+        R_vox = 4   # 예시: 반경 4 voxel 이내를 positive로 설정
+        dist2 = (zz - dz)**2 + (yy - dy)**2 + (xx - dx)**2
+        lbl = (dist2 <= R_vox**2).astype(np.float32)
 
         return _to_tensor(img), _to_tensor(lbl)
 

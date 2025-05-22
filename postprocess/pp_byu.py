@@ -15,7 +15,7 @@ import torch, pandas as pd, numpy as np
 # ───── 하이퍼 파라미터 ───────────────────────────────
 VOX_SPACING_A = 10.0          # voxel ↔ Å 변환 값
 NMS_RADIUS_VX = 15             # max-pool radius (voxel)
-THRESH        = 0.60          # 최고 확률 cutoff
+THRESH        = 0.10          # 최고 확률 cutoff
 CUDA_OK       = torch.cuda.is_available()
 
 # ───── 3-D NMS (FP16 지원) ───────────────────────────
@@ -29,7 +29,8 @@ def simple_nms(prob: torch.Tensor, radius: int = NMS_RADIUS_VX) -> torch.Tensor:
         prob[None, None],          # (B=1,C=1,D,H,W)
         kernel_size=k, stride=1, padding=radius
     )[0, 0]
-    return torch.where(prob == mp, prob, prob.new_zeros(()).expand_as(prob))
+    mask = prob >= mp
+    return torch.where(mask, prob, torch.zeros_like(prob))
 
 # ───── 메인 함수 ─────────────────────────────────────
 def post_process_volume(
