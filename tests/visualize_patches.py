@@ -18,25 +18,46 @@ imgs, lbls = item["image"], item["label"]
 OUT_DIR = Path(__file__).parent
 
 for idx, (im, lb) in enumerate(zip(imgs, lbls)):
+    # 양성 패치만 시각화
+    if lb.max() == 0:
+        continue
+
     im_np = im[0].numpy()
     lb_np = lb[0].numpy()
-    mid = [s // 2 for s in im_np.shape]
+
+    # 히트맵 중심을 찾아 해당 슬라이스 시각화
+    zc, yc, xc = np.unravel_index(lb_np.argmax(), lb_np.shape)
+    centers = [zc, yc, xc]
 
     fig, axes = plt.subplots(2, 3, figsize=(9, 6))
     for ax_idx in range(3):
-        img_slice = np.take(im_np, mid[ax_idx], axis=ax_idx)
-        lbl_slice = np.take(lb_np, mid[ax_idx], axis=ax_idx)
+        img_slice = np.take(im_np, centers[ax_idx], axis=ax_idx)
+        lbl_slice = np.take(lb_np, centers[ax_idx], axis=ax_idx)
 
         axes[0, ax_idx].imshow(img_slice, cmap="gray")
-        axes[0, ax_idx].axhline(mid[(ax_idx + 1) % 3], color="r", linestyle="--", linewidth=0.5)
-        axes[0, ax_idx].axvline(mid[(ax_idx + 2) % 3], color="r", linestyle="--", linewidth=0.5)
         axes[0, ax_idx].set_title(f"image axis {ax_idx}")
 
         axes[1, ax_idx].imshow(lbl_slice, cmap="gray")
         axes[1, ax_idx].set_title(f"label axis {ax_idx}")
 
-    fig.suptitle(f"patch {idx}")
+    fig.suptitle(f"positive patch {idx}")
     out_path = OUT_DIR / f"patch_{idx}.png"
+    fig.savefig(out_path)
+    print("saved", out_path)
+    plt.close(fig)
+
+    # ── max projection figure ──────────────────────────────────
+    fig, axes = plt.subplots(2, 3, figsize=(9, 6))
+    for ax_idx in range(3):
+        img_mip = im_np.max(axis=ax_idx)
+        lbl_mip = lb_np.max(axis=ax_idx)
+        axes[0, ax_idx].imshow(img_mip, cmap="gray")
+        axes[0, ax_idx].set_title(f"MIP image axis {ax_idx}")
+        axes[1, ax_idx].imshow(lbl_mip, cmap="gray")
+        axes[1, ax_idx].set_title(f"MIP label axis {ax_idx}")
+
+    fig.suptitle(f"MIP patch {idx}")
+    out_path = OUT_DIR / f"patch_{idx}_mip.png"
     fig.savefig(out_path)
     print("saved", out_path)
     plt.close(fig)
