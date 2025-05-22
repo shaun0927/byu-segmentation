@@ -176,11 +176,12 @@ class BYUMotorDataset(Dataset):
         patches_i, patches_l = [], []
 
         if row["Number of motors"] > 0:
-            spc = row["Voxel spacing"]
+            # train_labels.csv 에 기록된 모터 좌표는 이미 voxel 단위이므로
+            # 별도의 spacing 보정 없이 그대로 사용한다.
             ctr = (
-                int(row["Motor axis 0"] / spc),
-                int(row["Motor axis 1"] / spc),
-                int(row["Motor axis 2"] / spc),
+                int(row["Motor axis 0"]),
+                int(row["Motor axis 1"]),
+                int(row["Motor axis 2"]),
             )
             for _ in range(POS_PER_TOMO):
                 im, lb = self._pos_patch(vol, ctr)
