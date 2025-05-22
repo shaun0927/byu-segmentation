@@ -43,7 +43,7 @@ pred_coord = torch.tensor([
     pred_idx // (H * W),
     (pred_idx % (H * W)) // W,
     pred_idx % W,
-], dtype=torch.float32, device=prob.device)
+], dtype=torch.float32)
 
 gt_mask = batch["label"][0,0]
 gt_center = torch.nonzero(gt_mask > 0.5, as_tuple=False).float().mean(0)
