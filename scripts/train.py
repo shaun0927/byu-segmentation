@@ -267,10 +267,11 @@ def main():
             pred_has = (df_pred.iloc[0, 1:4] >= 0).all()
             gt_has   = row["Number of motors"] > 0
             if gt_has and pred_has:
+                # predicted 좌표는 Angstrom 단위이므로 voxel 단위로 맞춰 비교
                 dist = np.linalg.norm(
-                    df_pred.iloc[0, 1:4].values -
+                    df_pred.iloc[0, 1:4].values / spacing -
                     row[["Motor axis 0","Motor axis 1","Motor axis 2"]].values
-                ) / spacing
+                )
                 if dist <= TH_VOX:
                     tp += 1
                 else:
