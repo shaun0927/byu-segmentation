@@ -15,7 +15,7 @@ import torch, pandas as pd, numpy as np
 # ───── 하이퍼 파라미터 ───────────────────────────────
 VOX_SPACING_A = 10.0          # voxel ↔ Å 변환 값
 NMS_RADIUS_VX = 15             # max-pool radius (voxel)
-THRESH        = 0.20          # 최고 확률 cutoff
+THRESH        = 0.60          # 최고 확률 cutoff
 CUDA_OK       = torch.cuda.is_available()
 
 # ───── 3-D NMS (FP16 지원) ───────────────────────────

@@ -44,26 +44,32 @@ class BYUNet(nn.Module):
     """
     BYU Motor detector
     cfg dict keys (with defaults) :
-        backbone       : "resnet34"
-        pretrained     : False
-        pos_weight     : 128.0
-        label_smooth   : 0.0
-        focal_gamma    : 0.0
-        deep_supervise : True
+        backbone          : "resnet34"
+        pretrained        : False
+        pos_weight        : 256.0
+        label_smooth      : 0.0
+        focal_gamma       : 0.0
+        deep_supervise    : True   # ← prefer this
+        deep_supervision  : alias  # ← fallback for old configs
     """
     def __init__(self, cfg: dict):
         super().__init__()
+
+        # ── deep-supervision 키 통합 ─────────────────────────────
+        deep = cfg.get("deep_supervise", cfg.get("deep_supervision", True))
+
         self.model = FlexibleUNet(
             in_channels=1,
-            out_channels=2,              # background / motor
-            backbone=cfg.get("backbone", "resnet34"),
-            pretrained=cfg.get("pretrained", False),
-            deep_supervision=cfg.get("deep_supervise", True),
+            out_channels=2,               # background / motor
+            backbone       = cfg.get("backbone", "resnet34"),
+            pretrained     = cfg.get("pretrained", False),
+            deep_supervision = deep,      # ← 단일 변수로 전달
         )
+
         self.loss_fn = CEPlus(
-            pos_w=cfg.get("pos_weight", 128.0),
-            smooth=cfg.get("label_smooth", 0.0),
-            gamma=cfg.get("focal_gamma", 0.0),
+            pos_w  = cfg.get("pos_weight", 256.0),
+            smooth = cfg.get("label_smooth", 0.0),
+            gamma  = cfg.get("focal_gamma", 0.0),
         )
 
     # --------------------------------------------------

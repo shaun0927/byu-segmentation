@@ -28,8 +28,10 @@ cfg = get_cfg(
 
     # 손실/metric
     beta          = 2,
-    class_weights = [1., 1.],        # [motor, background]  (예시)
+    pos_weight    = 256.0,        # [motor, background]  (예시)
 
     # 로그
     disable_wandb = False,           # wandb 사용
 )
+
+

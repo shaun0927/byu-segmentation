@@ -25,7 +25,7 @@ _DEFAULTS = dict(
     # data
     data_root      = "data/processed",
     label_csv      = "data/raw/train_labels.csv",
-    roi_size       = (128, 128, 128),
+    roi_size       = (96, 96, 96),
 
     # training
     epochs         = 10,
