@@ -103,6 +103,8 @@ def parse_args():
                     help="Use partial validation: 10 pos + 10 neg tomograms")
     ap.add_argument("--val-freq", type=int, default=1,
                     help="Run validation every N epochs (≥1).")
+    ap.add_argument("--save-ckpt", type=str, default=None,
+                    help="Checkpoint prefix; if set, '{prefix}_epN.pt' files are saved")
     return ap.parse_args()
 
 # ============================================================================
@@ -225,6 +227,12 @@ def main():
                 "loss/train": ep_loss / len(tr_dl),
                 "lr": sch.get_last_lr()[0]
             }, step=ep)
+        if args.save_ckpt:
+            ckpt_base = pathlib.Path(args.save_ckpt)
+            ckpt_base.parent.mkdir(parents=True, exist_ok=True)
+            ckpt_fn = ckpt_base.with_name(f"{ckpt_base.stem}_ep{ep+1}.pt")
+            torch.save({"epoch": ep + 1, "model": net.state_dict()}, ckpt_fn)
+            print(f"[INFO] saved checkpoint to {ckpt_fn}")
         torch.cuda.empty_cache(); gc.collect()
 
         # ----------------- Validation (conditional) ------------------
