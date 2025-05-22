@@ -16,6 +16,7 @@ Usage:
 """
 from __future__ import annotations
 import sys, pathlib, argparse, time, math, gc, importlib, random
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
 import pandas as pd

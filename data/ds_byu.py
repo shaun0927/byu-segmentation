@@ -24,8 +24,8 @@ from utils import grid_split_3d
 # ─── global hyper‑params ──────────────────────────────────────────
 ROI: Tuple[int, int, int] = (96, 96, 96)          # (d, h, w)
 POS_PER_TOMO, NEG_PER_TOMO = 3, 1                 # batch 내부 3:1 → DataLoader 측 6:2 보장
-#SIGMA_PX   = 8                                  # spacing‑aware σ 는 ROI 프로토타입 확인 후 조정
-#CUTOFF     = 0.01
+SIGMA_PX   = 8                                  # spacing‑aware σ 는 ROI 프로토타입 확인 후 조정
+CUTOFF     = 0.02
 MAX_TRY_NEG = 50
 LABEL_CSV   = Path("data/raw/train_labels.csv")  # ← 경로 한 곳만!
 

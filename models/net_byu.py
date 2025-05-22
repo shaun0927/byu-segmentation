@@ -12,7 +12,7 @@ class BYUNet(nn.Module):
     cfg dict keys (with defaults) :
         backbone          : "resnet34"
         pretrained        : False
-        pos_weight        : 24.0
+        pos_weight        : 
         label_smooth      : 0.0    # unused in BCE
         focal_gamma       : 0.0    # unused in BCE
         deep_supervise    : True
