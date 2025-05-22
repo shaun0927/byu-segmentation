@@ -28,7 +28,7 @@ from skimage.util import view_as_blocks
 # local imports
 from data.ds_byu import BYUMotorDataset, simple_collate, load_zarr, ROI  # ROI = (96,96,96)
 from models.net_byu import BYUNet
-from postprocess.pp_byu import post_process_volume
+from postprocess.pp_byu import post_process_volume, THRESH
 # ------------------------------------------------------------------------------
 
 VAL_BS    = 16        # validation batch size
@@ -263,6 +263,12 @@ def main():
             spacing = df_all.loc[tid, "Voxel spacing"]
             df_pred = post_process_volume(full_prob, spacing=spacing, tomo_id=tid)
 
+            conf_val = df_pred["conf"].iloc[0]
+            coord_val = df_pred.iloc[0, 1:4].values
+            print(
+                f"[{tid}] conf={conf_val:.3f}, coord={coord_val.tolist()}, THRESH={THRESH}"
+            )
+
             row = df_all.loc[tid]
             pred_has = (df_pred.iloc[0, 1:4] >= 0).all()
             gt_has   = row["Number of motors"] > 0
@@ -272,6 +278,7 @@ def main():
                     df_pred.iloc[0, 1:4].values / spacing -
                     row[["Motor axis 0","Motor axis 1","Motor axis 2"]].values
                 )
+                print(f"[{tid}] distance to GT = {dist:.1f} vox")
                 if dist <= TH_VOX:
                     tp += 1
                 else:
