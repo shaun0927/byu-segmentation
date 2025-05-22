@@ -1,6 +1,7 @@
 """tests/check_peak_dilution.py
 Synthetic grid_reconstruct_3d test to confirm peak dilution.
 """
+
 import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 
