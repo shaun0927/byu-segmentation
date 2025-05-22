@@ -1,6 +1,8 @@
 """tests/check_patch_logits.py
 BYUMotorDataset에서 양성 패치만 골라 BYUNet 추론 logits.max()를 출력한다.
 """
+import sys, pathlib
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 
 import torch
 import pandas as pd
