@@ -4,7 +4,7 @@ BYU Motor – Training Script  (val-freq 지원 버전)
 
 Features:
 - Dataset ROI = 96³
-- BalancedSampler for 3:3 pos:neg tomogram ratio
+- BalancedSampler for 3:3 pos:neg tomogram ratio (batch size = kp+kn)
 - BYUNet-internal loss (CEPlus) usage
 - Partial validation (--quick-val) with 10 positive + 10 negative samples
 - Spacing-aware post-processing
@@ -169,16 +169,18 @@ def main():
     sampler = BalancedSampler(pos_idx, neg_idx)
 
     # Training DataLoader
+    # BalancedSampler 가 (kp+kn) 단위로 인덱스를 반환하므로
+    # DataLoader 의 batch_size 도 동일하게 맞춰 3:3 비율을 유지한다
     tr_dl = DataLoader(
         train_ds,
-        batch_size=cfg.batch_size,
+        batch_size=sampler.kp + sampler.kn,
         sampler=sampler,
         shuffle=False,
         num_workers=cfg.num_workers,
         collate_fn=simple_collate,
         pin_memory=cfg.pin_memory,
         persistent_workers=cfg.persistent_workers,
-        drop_last=True,  # ensure 6+2 per batch
+        drop_last=False,
     )
 
     # Model, optimizer, scheduler, scaler

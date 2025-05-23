@@ -30,7 +30,7 @@ _DEFAULTS = dict(
     # training
     epochs         = 10,
     lr             = 1e-3,
-    batch_size     = 8,
+    batch_size     = 6,
     num_workers    = 8,
     seed           = 42,
     pin_memory     = True,          # ① GPU 전송 가속
