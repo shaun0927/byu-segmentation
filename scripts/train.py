@@ -106,6 +106,13 @@ def parse_args():
                     help="Run validation every N epochs (≥1).")
     ap.add_argument("--save-ckpt", type=str, default=None,
                     help="Checkpoint prefix; if set, '{prefix}_epN.pt' files are saved")
+    ap.add_argument("--dist-weight", type=float, default=None,
+                    help="Distance weight for post-processing")
+    ap.add_argument("--expected-max-dist", type=float, default=None,
+                    help="Override expected max distance in Å")
+    ap.add_argument("--score-mode", type=str, default="exp",
+                    choices=["linear", "exp"],
+                    help="Score combination mode")
     return ap.parse_args()
 
 # ============================================================================
@@ -271,7 +278,6 @@ def main():
 
             spacing = df_all.loc[tid, "Voxel spacing"]
             exp_max = TH_VOX * spacing
-
             row = df_all.loc[tid]
             gt_coord = None
             if row["Number of motors"] > 0:
