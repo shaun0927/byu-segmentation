@@ -23,7 +23,8 @@ from utils import grid_split_3d, gaussian_kernel_3d
 
 # ─── global hyper‑params ──────────────────────────────────────────
 ROI: Tuple[int, int, int] = (96, 96, 96)          # (d, h, w)
-POS_PER_TOMO, NEG_PER_TOMO = 2, 2                 # 양성/음성 패치 2개씩 (3:3 Sampler용)
+POS_PER_TOMO, NEG_PER_TOMO = 2, 2                 # 기본 양성/음성 패치 수
+BALANCE_PATCHES = True                            # 전체 비율 1:1 맞춤용
 SIGMA_PX   = 8                                  # spacing‑aware σ 는 ROI 프로토타입 확인 후 조정
 CUTOFF     = 0.02
 MAX_TRY_NEG = 50
@@ -80,6 +81,16 @@ class BYUMotorDataset(Dataset):
                   .set_index("tomo_id")
                   .loc[self.ids]          # train/val 공용 label DF
             )
+
+        # 패치 비율 조정을 위한 초기 설정 ---------------------------------
+        self.pos_per_tomo = POS_PER_TOMO
+        if mode == "train" and BALANCE_PATCHES:
+            info = self.df["Number of motors"].groupby("tomo_id").first()
+            n_pos = int((info > 0).sum())
+            n_neg = int((info == 0).sum())
+            if n_pos > 0:
+                total_neg = (n_pos + n_neg) * NEG_PER_TOMO
+                self.pos_per_tomo = max(1, round(total_neg / n_pos))
 
         if mode == "train":
             # ── augmentation pipeline ────────────────────────────
@@ -182,7 +193,7 @@ class BYUMotorDataset(Dataset):
                 int(row["Motor axis 1"]),
                 int(row["Motor axis 2"]),
             )
-            for _ in range(POS_PER_TOMO):
+            for _ in range(self.pos_per_tomo):
                 im, lb = self._pos_patch(vol, ctr)
                 patches_i.append(im)
                 patches_l.append(lb)
