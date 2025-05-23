@@ -10,7 +10,7 @@ BYU-Motor 후처리 (FP16 NMS 버전, down-sampling X)
 
 from __future__ import annotations
 from typing import Tuple, Union
-import torch, pandas as pd, numpy as np
+import torch, pandas as pd, numpy as np, math
 
 # ───── 하이퍼 파라미터 ───────────────────────────────
 VOX_SPACING_A = 10.0          # voxel ↔ Å 변환 값
@@ -45,6 +45,7 @@ def post_process_volume(
     dist_weight: float | None = None,
     expected_max_dist: float = 1000.0,
     n_keep: int = 1,
+    score_mode: str = "linear",
 ) -> pd.DataFrame:
     """
     확률 볼륨 → 여러 row DataFrame (없으면 -1,-1,-1)
@@ -59,10 +60,14 @@ def post_process_volume(
     dist_weight : joint score 계산 시 거리 가중치 (기본: 1/expected_max_dist)
     expected_max_dist : GT 와 예측 좌표 사이 최대 예상 거리 [Å]
     n_keep : 점수순으로 반환할 후보 개수
+    score_mode : 점수 계산 방식 ("linear" 또는 "exp")
     """
     # dist_weight 기본값 계산
     if dist_weight is None:
         dist_weight = 1.0 / expected_max_dist
+
+    if score_mode not in ("linear", "exp"):
+        raise ValueError(f"unknown score_mode: {score_mode}")
 
     # 0) tensor 로 변환 및 Device / dtype 설정 --------------------
     if isinstance(prob_vol, np.ndarray):
@@ -96,7 +101,10 @@ def post_process_volume(
         dist = 0.0
         if gt_coord is not None:
             dist = float(np.linalg.norm(coord_A - np.asarray(gt_coord)))
-        score = conf_v - dist_weight * dist
+        if score_mode == "exp":
+            score = conf_v * math.exp(-dist_weight * dist)
+        else:
+            score = conf_v - dist_weight * dist
         cand.append({"score": score, "conf": conf_v, "coord": coord_A.tolist()})
 
     if not cand:
