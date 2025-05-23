@@ -270,7 +270,13 @@ def main():
             full_prob = full_prob[:D, :H, :W]
 
             spacing = df_all.loc[tid, "Voxel spacing"]
-            df_pred = post_process_volume(full_prob, spacing=spacing, tomo_id=tid)
+            exp_max = TH_VOX * spacing
+            df_pred = post_process_volume(
+                full_prob,
+                spacing=spacing,
+                tomo_id=tid,
+                expected_max_dist=exp_max,
+            )
 
             conf_val = df_pred["conf"].iloc[0]
             coord_val = df_pred.iloc[0, 1:4].values

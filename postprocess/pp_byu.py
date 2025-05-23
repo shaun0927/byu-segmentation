@@ -17,7 +17,7 @@ VOX_SPACING_A = 10.0          # voxel ↔ Å 변환 값
 NMS_RADIUS_VX = 15            # max-pool radius (voxel)
 THRESH        = 0.50          # 최고 확률 cutoff
 TOPK          = 5             # 후보 peak 개수
-DIST_WEIGHT   = 1e-3          # joint score 거리 패널티 가중치
+DIST_WEIGHT   = 1e-3          # joint score 거리 패널티 가중치 (1/1000 Å)
 CUDA_OK       = torch.cuda.is_available()
 
 # ───── 3-D NMS (FP16 지원) ───────────────────────────
@@ -42,7 +42,8 @@ def post_process_volume(
     tomo_id: str   = "unknown",
     topk: int = TOPK,
     gt_coord: Tuple[float, float, float] | None = None,
-    dist_weight: float = DIST_WEIGHT,
+    dist_weight: float | None = None,
+    expected_max_dist: float = 1000.0,
 ) -> pd.DataFrame:
     """
     확률 볼륨 → 1 row DataFrame (없으면 -1,-1,-1)
@@ -54,8 +55,13 @@ def post_process_volume(
     tomo_id  : 결과 DataFrame 에 기록될 tomogram ID
     topk     : NMS 후 고려할 최고 확률 peak 수
     gt_coord : GT 좌표가 주어지면 거리 페널티를 적용해 최종 좌표 결정
-    dist_weight : joint score 계산 시 거리 가중치
+    dist_weight : joint score 계산 시 거리 가중치 (기본: 1/expected_max_dist)
+    expected_max_dist : GT 와 예측 좌표 사이 최대 예상 거리 [Å]
     """
+    # dist_weight 기본값 계산
+    if dist_weight is None:
+        dist_weight = 1.0 / expected_max_dist
+
     # 0) tensor 로 변환 및 Device / dtype 설정 --------------------
     if isinstance(prob_vol, np.ndarray):
         prob = torch.from_numpy(prob_vol)          # CPU tensor
