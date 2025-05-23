@@ -44,9 +44,10 @@ def post_process_volume(
     gt_coord: Tuple[float, float, float] | None = None,
     dist_weight: float | None = None,
     expected_max_dist: float = 1000.0,
+    n_keep: int = 1,
 ) -> pd.DataFrame:
     """
-    확률 볼륨 → 1 row DataFrame (없으면 -1,-1,-1)
+    확률 볼륨 → 여러 row DataFrame (없으면 -1,-1,-1)
 
     Parameters
     ----------
@@ -57,6 +58,7 @@ def post_process_volume(
     gt_coord : GT 좌표가 주어지면 거리 페널티를 적용해 최종 좌표 결정
     dist_weight : joint score 계산 시 거리 가중치 (기본: 1/expected_max_dist)
     expected_max_dist : GT 와 예측 좌표 사이 최대 예상 거리 [Å]
+    n_keep : 점수순으로 반환할 후보 개수
     """
     # dist_weight 기본값 계산
     if dist_weight is None:
@@ -82,7 +84,7 @@ def post_process_volume(
 
     # 2) 후보 좌표 계산 -----------------------------------------
     D, H, W = prob.shape
-    best = {"score": -float("inf"), "conf": 0.0, "coord": [-1.0, -1.0, -1.0]}
+    cand = []
     for conf, idx in zip(conf_k, idx_k):
         conf_v = float(conf.item())
         ii = int(idx.item())
@@ -95,25 +97,30 @@ def post_process_volume(
         if gt_coord is not None:
             dist = float(np.linalg.norm(coord_A - np.asarray(gt_coord)))
         score = conf_v - dist_weight * dist
+        cand.append({"score": score, "conf": conf_v, "coord": coord_A.tolist()})
 
-        if score > best["score"]:
-            best = {"score": score, "conf": conf_v, "coord": coord_A.tolist()}
-
-    conf_val = best["conf"]
-
-    # 2) 모터 없음 -----------------------------------------------
-    if conf_val < THRESH:
+    if not cand:
         return pd.DataFrame(
-            [[tomo_id, -1, -1, -1, conf_val]],
-            columns=["tomo_id",
-                     "Motor axis 0", "Motor axis 1", "Motor axis 2", "conf"]
+            [[tomo_id, -1, -1, -1, 0.0]],
+            columns=["tomo_id", "Motor axis 0", "Motor axis 1", "Motor axis 2", "conf"]
         )
 
-    # 3) voxel → Å 좌표 변환 -------------------------------------
-    coord_Å = best["coord"]
+    cand.sort(key=lambda x: x["score"], reverse=True)
+    best_conf = cand[0]["conf"]
+
+    # 2) 모터 없음 -----------------------------------------------
+    if best_conf < THRESH:
+        return pd.DataFrame(
+            [[tomo_id, -1, -1, -1, best_conf]],
+            columns=["tomo_id", "Motor axis 0", "Motor axis 1", "Motor axis 2", "conf"]
+        )
+
+    rows = [
+        [tomo_id, *c["coord"], c["conf"]]
+        for c in cand[: max(1, n_keep)]
+    ]
 
     return pd.DataFrame(
-        [[tomo_id, *coord_Å, conf_val]],
-        columns=["tomo_id",
-                 "Motor axis 0", "Motor axis 1", "Motor axis 2", "conf"]
+        rows,
+        columns=["tomo_id", "Motor axis 0", "Motor axis 1", "Motor axis 2", "conf"]
     )
