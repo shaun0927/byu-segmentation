@@ -25,7 +25,7 @@ ds = torch.utils.data.Subset(ds_all, [pos_idx])
 dl = torch.utils.data.DataLoader(ds, batch_size=1, collate_fn=simple_collate)
 
 # ── model & optim ---------------------------------------------------
-net = BYUNet({"backbone": "resnet34", "pos_weight": 24.}).to(device)
+net = BYUNet({"backbone": "resnet34", "pos_weight": 2.}).to(device)
 opt = torch.optim.Adam(net.parameters(), lr=1e-3)
 
 # ── training loop ---------------------------------------------------

@@ -4,7 +4,7 @@ BYU Motor – Training Script  (val-freq 지원 버전)
 
 Features:
 - Dataset ROI = 96³
-- BalancedSampler for 6:2 pos:neg tomogram ratio
+- BalancedSampler for 3:3 pos:neg tomogram ratio
 - BYUNet-internal loss (CEPlus) usage
 - Partial validation (--quick-val) with 10 positive + 10 negative samples
 - Spacing-aware post-processing
@@ -42,9 +42,9 @@ PAD_MODE  = "reflect"
 class BalancedSampler(Sampler):
     """
     Finite sampler: 한 에폭에 (kp+kn) * n_batches 만큼만 인덱스 반환
-    kp = 양성, kn = 음성 샘플 수
+    기본 비율은 k_pos=k_neg=3
     """
-    def __init__(self, pos_idx, neg_idx, *, k_pos=6, k_neg=2, seed=42):
+    def __init__(self, pos_idx, neg_idx, *, k_pos=3, k_neg=3, seed=42):
         self.pos, self.neg = list(pos_idx), list(neg_idx)
         self.kp, self.kn   = k_pos, k_neg
         self.rng = random.Random(seed)
@@ -107,7 +107,7 @@ def parse_args():
                     help="Run validation every N epochs (≥1).")
     ap.add_argument("--save-ckpt", type=str, default=None,
                     help="Checkpoint prefix; if set, '{prefix}_epN.pt' files are saved")
-    ap.add_argument("--dist-weight", type=float, default=None,
+    ap.add_argument("--dist-weight", type=float, default=0.02,
                     help="Distance weight for post-processing")
     ap.add_argument("--expected-max-dist", type=float, default=None,
                     help="Override expected max distance in Å")
