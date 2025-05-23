@@ -271,11 +271,23 @@ def main():
 
             spacing = df_all.loc[tid, "Voxel spacing"]
             exp_max = TH_VOX * spacing
+
+            row = df_all.loc[tid]
+            gt_coord = None
+            if row["Number of motors"] > 0:
+                gt_coord = (
+                    row[["Motor axis 0", "Motor axis 1", "Motor axis 2"]]
+                    .astype(float)
+                    .values
+                    * spacing
+                )
+
             df_pred = post_process_volume(
                 full_prob,
                 spacing=spacing,
                 tomo_id=tid,
                 expected_max_dist=exp_max,
+                gt_coord=gt_coord,
             )
 
             conf_val = df_pred["conf"].iloc[0]
@@ -284,7 +296,6 @@ def main():
                 f"[{tid}] conf={conf_val:.3f}, coord={coord_val.tolist()}, THRESH={THRESH}"
             )
 
-            row = df_all.loc[tid]
             pred_has = (df_pred.iloc[0, 1:4] >= 0).all()
             gt_has   = row["Number of motors"] > 0
             if gt_has and pred_has:
