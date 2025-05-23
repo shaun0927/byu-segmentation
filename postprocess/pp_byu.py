@@ -15,7 +15,7 @@ import torch, pandas as pd, numpy as np
 # ───── 하이퍼 파라미터 ───────────────────────────────
 VOX_SPACING_A = 10.0          # voxel ↔ Å 변환 값
 NMS_RADIUS_VX = 15            # max-pool radius (voxel)
-THRESH        = 0.50          # 최고 확률 cutoff
+THRESH        = 0.30          # 최고 확률 cutoff
 TOPK          = 5             # 후보 peak 개수
 DIST_WEIGHT   = 1e-3          # joint score 거리 패널티 가중치
 CUDA_OK       = torch.cuda.is_available()
