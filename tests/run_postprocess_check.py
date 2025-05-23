@@ -23,5 +23,5 @@ motor_logit = torch.tensor(full_vol) * 6.0        # 강도 조절
 bg_logit    = torch.zeros_like(motor_logit)
 logits = torch.stack([bg_logit, motor_logit])     # (2,D,H,W)
 
-df = post_process_volume(logits, spacing, tomo_id=tid)
+df = post_process_volume(logits, spacing, tomo_id=tid, topk=5)
 print(df)
