@@ -23,7 +23,7 @@ cfg = get_cfg(
     lr            = 2e-4,
     weight_decay  = 1e-5,
     optimizer     = "AdamW",
-    batch_size    = 8,
+    batch_size    = 6,
     num_workers   = 8,
 
     # 손실/metric
