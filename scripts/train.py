@@ -47,7 +47,7 @@ class BalancedSampler(Sampler):
     def __init__(self, pos_idx, neg_idx, *, k_pos=6, k_neg=2, seed=42):
         self.pos, self.neg = list(pos_idx), list(neg_idx)
         self.kp, self.kn   = k_pos, k_neg
-        random.seed(seed)
+        self.rng = random.Random(seed)
 
         # 에폭당 배치 수 = 두 클래스 모두 고갈되지 않는 최소치
         self.n_batches = min(len(self.pos)//self.kp, len(self.neg)//self.kn)
@@ -59,12 +59,13 @@ class BalancedSampler(Sampler):
     def __iter__(self):
         pos_pool = self.pos.copy()
         neg_pool = self.neg.copy()
-        random.shuffle(pos_pool); random.shuffle(neg_pool)
+        self.rng.shuffle(pos_pool)
+        self.rng.shuffle(neg_pool)
 
         for _ in range(self.n_batches):
             batch = [pos_pool.pop() for _ in range(self.kp)] + \
                     [neg_pool.pop() for _ in range(self.kn)]
-            random.shuffle(batch)
+            self.rng.shuffle(batch)
             yield from batch
 
     def __len__(self):
