@@ -278,9 +278,6 @@ def main():
 
             spacing = df_all.loc[tid, "Voxel spacing"]
             exp_max = TH_VOX * spacing
-            if args.expected_max_dist is not None:
-                exp_max = args.expected_max_dist
-
             row = df_all.loc[tid]
             gt_coord = None
             if row["Number of motors"] > 0:
@@ -297,8 +294,6 @@ def main():
                 tomo_id=tid,
                 expected_max_dist=exp_max,
                 gt_coord=gt_coord,
-                dist_weight=args.dist_weight,
-                score_mode=args.score_mode,
             )
 
             conf_val = df_pred["conf"].iloc[0]
