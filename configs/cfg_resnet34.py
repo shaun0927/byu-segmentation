@@ -28,7 +28,7 @@ cfg = get_cfg(
 
     # 손실/metric
     beta          = 2,
-    pos_weight    = 24.0,         # [motor, background]  (예시)
+    pos_weight    = 2.0,          # [motor, background]
 
     # 로그
     disable_wandb = False,           # wandb 사용
